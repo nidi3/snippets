@@ -59,7 +59,7 @@ public class Snippets {
             parse(new StringReader(code));
             return this;
         } catch (IOException e) {
-            throw new AssertionError("Cannot happen");
+            throw new AssertionError("Cannot happen",e);
         }
     }
 
@@ -71,7 +71,7 @@ public class Snippets {
         final File temp = File.createTempFile("snippets", "txt");
         replace(file, temp, encoding, false);
         if (!file.delete()) {
-            throw new RuntimeException("Could not delete file " + file);
+            throw new IOException("Could not delete file " + file);
         }
         Files.move(temp.toPath(), file.toPath());
     }
@@ -98,12 +98,12 @@ public class Snippets {
             replace(new StringReader(s), sw, refs);
             return sw.toString();
         } catch (IOException e) {
-            throw new AssertionError("Cannot happen");
+            throw new AssertionError("Cannot happen",e);
         }
     }
 
     private void parse(Reader in) throws IOException {
-        final String code = read(in);
+        final String code = IoUtils.read(in);
         final Matcher matcher = snippetStart.matcher(code);
         int endPos = -1;
         while (matcher.find(endPos + 1)) {
@@ -132,14 +132,14 @@ public class Snippets {
             }
         }
         final StringBuilder sb = new StringBuilder();
-        for (String line : lines) {
+        for (final String line : lines) {
             sb.append(line.length() >= minIndent ? line.substring(minIndent) : line).append('\n');
         }
         return s.endsWith("\n") ? sb.toString() : sb.substring(0, sb.length() - 1);
     }
 
     private void replace(Reader in, Writer out, boolean refs) throws IOException {
-        final String template = read(in);
+        final String template = IoUtils.read(in);
         final Matcher matcher = refStart.matcher(template);
         int endPos = -1;
         while (matcher.find(endPos + 1)) {
@@ -160,15 +160,5 @@ public class Snippets {
             out.write(snippets.get(name));
         }
         out.write(template.substring(endPos));
-    }
-
-    private String read(Reader in) throws IOException {
-        final StringBuilder s = new StringBuilder();
-        char[] buf = new char[1000];
-        int read;
-        while ((read = in.read(buf)) > 0) {
-            s.append(buf, 0, read);
-        }
-        return s.toString();
     }
 }

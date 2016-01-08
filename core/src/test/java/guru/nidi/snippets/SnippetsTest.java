@@ -28,6 +28,9 @@ import static org.junit.Assert.assertEquals;
  *
  */
 public class SnippetsTest {
+    private final Snippets s = new Snippets("#%name", "#", "#%name", "#")
+            .withString("line\n#s1\n snippet \n#end\nline");
+
     @Test(expected = IllegalArgumentException.class)
     public void noNameInStart() {
         new Snippets("start", "end", "#%name", "end");
@@ -40,9 +43,7 @@ public class SnippetsTest {
 
     @Test
     public void stringParseOk() {
-        final Snippets s = new Snippets("#%name#", "#", "#%name", "#")
-                .withString("line\n#s1# snippet #end\nline");
-        assertEquals(map("s1", "snippet "), s.snippets);
+        assertEquals(map("s1", "\nsnippet \n"), s.snippets);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -59,37 +60,29 @@ public class SnippetsTest {
     public void fileParseOk() throws IOException {
         final Snippets s = new Snippets("//*%name", "//*", "#%name", "#")
                 .withFile(new File("src/test/java/guru/nidi/snippets/SnippetsCode.java"), "utf-8");
-        assertEquals(map("main", "\npublic static void main(String[] args) {\n    System.exit(1);\n}\n"), s.snippets);
+        assertEquals(map("main", "\npublic static void main(String... args) {\n    System.exit(1);\n}\n"), s.snippets);
     }
 
     @Test
     public void stringReplaceRefOk() {
-        final Snippets s = new Snippets("#%name", "#", "#%name", "#")
-                .withString("line\n#s1 snippet #end\nline");
-        assertEquals("This is code:\nsnippet \nfooter", s.replaceRefs("This is code:\n#s1\nfooter"));
+        assertEquals("This is code:\n\nsnippet \n\nfooter", s.replaceRefs("This is code:\n#s1\nfooter"));
     }
 
     @Test
     public void stringReplaceSnippetsOk() {
-        final Snippets s = new Snippets("#%name", "#", "#%name", "#")
-                .withString("line\n#s1\n snippet \n#end\nline");
         assertEquals("This is code:\n#s1\nsnippet \n#\nfooter", s.replaceSnippets("This is code:\n#s1\nold code#\nfooter"));
     }
 
     @Test
     public void fileReplaceRefOk() throws IOException {
-        final Snippets s = new Snippets("#%name", "#", "#%name", "#")
-                .withString("line\n#s1 snippet #end\nline");
         final File output = new File("target/out/simple.out");
 
         s.replaceRefs(new File("src/test/resources/guru/nidi/snippets/simple.template"), output, "utf-8");
-        assertEquals("This is code:\nsnippet \nold\n#\nfooter", read(output));
+        assertEquals("This is code:\n\nsnippet \n\nold\n#\nfooter", read(output));
     }
 
     @Test
     public void fileReplaceSnippetsOk() throws IOException {
-        final Snippets s = new Snippets("#%name", "#", "#%name", "#")
-                .withString("line\n#s1\n snippet \n#end\nline");
         final File out = new File("target/out/replace.out");
         Files.copy(new File("src/test/resources/guru/nidi/snippets/simple.template").toPath(), new FileOutputStream(out));
 
@@ -99,8 +92,6 @@ public class SnippetsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void wrongRef() {
-        final Snippets s = new Snippets("#%name#", "#", "#%name", "#")
-                .withString("line\n#s1# snippet #end\nline");
         assertEquals("This is code:\nsnippet \nfooter", s.replaceRefs("This is code:\n#s2\nfooter"));
     }
 
@@ -114,13 +105,7 @@ public class SnippetsTest {
 
     private String read(File f) throws IOException {
         try (final Reader in = new InputStreamReader(new FileInputStream(f), "utf-8")) {
-            final StringBuilder s = new StringBuilder();
-            char[] buf = new char[1000];
-            int read;
-            while ((read = in.read(buf)) > 0) {
-                s.append(buf, 0, read);
-            }
-            return s.toString();
+            return IoUtils.read(in);
         }
     }
 
