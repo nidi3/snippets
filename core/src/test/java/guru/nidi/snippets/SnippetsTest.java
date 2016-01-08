@@ -28,8 +28,8 @@ import static org.junit.Assert.assertEquals;
  *
  */
 public class SnippetsTest {
-    private final Snippets s = new Snippets("#%name", "#", "#%name", "#")
-            .withString("line\n#s1\n snippet \n#end\nline");
+    private final Snippets s = new Snippets("##%name", "##end", "##%name", "##end")
+            .withString("line\n##s1\n snippet \n##end\nline");
 
     @Test(expected = IllegalArgumentException.class)
     public void noNameInStart() {
@@ -65,20 +65,25 @@ public class SnippetsTest {
 
     @Test
     public void stringReplaceRefOk() {
-        assertEquals("This is code:\n\nsnippet \n\nfooter", s.replaceRefs("This is code:\n#s1\nfooter"));
+        assertEquals("This is code:\n\nsnippet \n\nfooter", s.replaceRefs("This is code:\n##s1\nfooter"));
     }
 
     @Test
     public void stringReplaceSnippetsOk() {
-        assertEquals("This is code:\n#s1\nsnippet \n#\nfooter", s.replaceSnippets("This is code:\n#s1\nold code#\nfooter"));
+        assertEquals("This is code:\n##s1\nsnippet \n##end\nfooter", s.replaceSnippets("This is code:\n##s1\nold code##end\nfooter"));
+    }
+
+    @Test
+    public void prefixPostfix() {
+        assertEquals("This is code:\npre\nsnippet \npost\nfooter", s.prefix("pre").postfix("post").replaceRefs("This is code:\n##s1\nfooter"));
     }
 
     @Test
     public void fileReplaceRefOk() throws IOException {
         final File output = new File("target/out/simple.out");
 
-        s.replaceRefs(new File("src/test/resources/guru/nidi/snippets/simple.template"), output, "utf-8");
-        assertEquals("This is code:\n\nsnippet \n\nold\n#\nfooter", read(output));
+        s.withString("##end---##end").replaceRefs(new File("src/test/resources/guru/nidi/snippets/simple.template"), output, "utf-8");
+        assertEquals("This is code:\n\nsnippet \n\nold\n---\nfooter", read(output));
     }
 
     @Test
@@ -87,12 +92,17 @@ public class SnippetsTest {
         Files.copy(new File("src/test/resources/guru/nidi/snippets/simple.template").toPath(), new FileOutputStream(out));
 
         s.replaceSnippets(out, "utf-8");
-        assertEquals("This is code:\n#s1\nsnippet \n#\nfooter", read(out));
+        assertEquals("This is code:\n##s1\nsnippet \n##end\nfooter", read(out));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void wrongRef() {
-        assertEquals("This is code:\nsnippet \nfooter", s.replaceRefs("This is code:\n#s2\nfooter"));
+        s.replaceRefs("This is code:\n##s2\nfooter");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void noEndRef() {
+        s.replaceSnippets("This is code:\n##s1\nold code\nfooter");
     }
 
     private static Map<String, String> map(String... keysValues) {

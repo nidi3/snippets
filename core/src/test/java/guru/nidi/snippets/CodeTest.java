@@ -62,8 +62,9 @@ public class CodeTest {
     @Test
     public void pmd() {
         final PmdAnalyzer analyzer = new PmdAnalyzer(mavenMainAndTestClasses(), new ViolationCollector()
-                .because("I don't agree", In.everywhere()
-                        .ignore("JUnitAssertionsShouldIncludeMessage", "MethodArgumentCouldBeFinal", "AvoidFieldNameMatchingTypeName", "UncommentedEmptyMethodBody", "AbstractNaming"))
+                .because("I don't agree", In.everywhere().ignore(
+                        "JUnitAssertionsShouldIncludeMessage", "MethodArgumentCouldBeFinal", "AvoidFieldNameMatchingTypeName",
+                        "AvoidFieldNameMatchingMethodName", "UncommentedEmptyMethodBody", "AbstractNaming"))
                 .because("It's in a test", In.locs("*Test", "*Test$*")
                         .ignore("AvoidDollarSigns", "TooManyStaticImports", "AvoidDuplicateLiterals")))
                 .withRuleSets(basic(), braces(), design(), empty(), exceptions(), imports(), junit(),
@@ -73,6 +74,6 @@ public class CodeTest {
 
     @Test
     public void cpd() {
-        assertThat(new CpdAnalyzer(mavenMainAndTestClasses(), 20, new MatchCollector()), hasNoDuplications());
+        assertThat(new CpdAnalyzer(mavenMainAndTestClasses(), 25, new MatchCollector()), hasNoDuplications());
     }
 }

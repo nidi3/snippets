@@ -17,6 +17,7 @@ package guru.nidi.snippets;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -26,17 +27,26 @@ import java.util.regex.Pattern;
  *
  */
 public class Snippets {
-    final Map<String, String> snippets = new HashMap<>();
+    final Map<String, String> snippets;
     private final Pattern snippetStart;
     private final String snippetEnd;
     private final Pattern refStart;
     private final String refEnd;
+    private final String prefix;
+    private final String postfix;
 
     public Snippets(String snippetStart, String snippetEnd, String refStart, String refEnd) {
-        this.refEnd = refEnd;
-        this.snippetStart = markPattern(snippetStart);
+        this(markPattern(snippetStart), snippetEnd, markPattern(refStart), refEnd, "", "", Collections.<String, String>emptyMap());
+    }
+
+    private Snippets(Pattern snippetStart, String snippetEnd, Pattern refStart, String refEnd, String prefix, String postfix, Map<String, String> snippets) {
+        this.snippetStart = snippetStart;
         this.snippetEnd = snippetEnd;
-        this.refStart = markPattern(refStart);
+        this.refStart = refStart;
+        this.refEnd = refEnd;
+        this.prefix = prefix;
+        this.postfix = postfix;
+        this.snippets = snippets;
     }
 
     private static Pattern markPattern(String s) {
@@ -47,19 +57,25 @@ public class Snippets {
         return Pattern.compile("\\Q" + s.substring(0, pos) + "\\E([A-Za-z0-9]+)\\Q" + s.substring(pos + 5));
     }
 
+    public Snippets prefix(String prefix) {
+        return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, snippets);
+    }
+
+    public Snippets postfix(String postfix) {
+        return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, snippets);
+    }
+
     public Snippets withFile(File file, String encoding) throws IOException {
         try (final Reader in = new InputStreamReader(new FileInputStream(file), encoding)) {
-            parse(in);
+            return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, parse(in, new HashMap<>(snippets)));
         }
-        return this;
     }
 
     public Snippets withString(String code) {
         try {
-            parse(new StringReader(code));
-            return this;
+            return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, parse(new StringReader(code), new HashMap<>(snippets)));
         } catch (IOException e) {
-            throw new AssertionError("Cannot happen",e);
+            throw new AssertionError("Cannot happen", e);
         }
     }
 
@@ -84,6 +100,10 @@ public class Snippets {
         return replace(s, false);
     }
 
+    public int size() {
+        return snippets.size();
+    }
+
     private void replace(File file, File output, String encoding, boolean refs) throws IOException {
         output.getParentFile().mkdirs();
         try (final Reader in = new InputStreamReader(new FileInputStream(file), encoding);
@@ -98,15 +118,15 @@ public class Snippets {
             replace(new StringReader(s), sw, refs);
             return sw.toString();
         } catch (IOException e) {
-            throw new AssertionError("Cannot happen",e);
+            throw new AssertionError("Cannot happen", e);
         }
     }
 
-    private void parse(Reader in) throws IOException {
+    private Map<String, String> parse(Reader in, Map<String, String> snippets) throws IOException {
         final String code = IoUtils.read(in);
         final Matcher matcher = snippetStart.matcher(code);
-        int endPos = -1;
-        while (matcher.find(endPos + 1)) {
+        int endPos = 0;
+        while (matcher.find(endPos)) {
             endPos = code.indexOf(snippetEnd, matcher.end());
             if (endPos < 0) {
                 throw new IllegalArgumentException("No snippetEnd marker found for snippetStart '" + code.substring(matcher.start(), matcher.end()) + "'");
@@ -116,18 +136,20 @@ public class Snippets {
                 throw new IllegalArgumentException("Snippet with name '" + name + "' already existing.");
             }
             snippets.put(name, trim(code.substring(matcher.end(), endPos)));
+            endPos += snippetEnd.length();
         }
+        return snippets;
     }
 
     private String trim(String s) {
         int minIndent = 1000;
         final String[] lines = s.split("\n");
-        for (int i = 0; i < lines.length; i++) {
+        for (final String line : lines) {
             int pos = 0;
-            while (pos < lines[i].length() && lines[i].charAt(pos) <= ' ') {
+            while (pos < line.length() && line.charAt(pos) <= ' ') {
                 pos++;
             }
-            if (pos < lines[i].length() && pos < minIndent) {
+            if (pos < line.length() && pos < minIndent) {
                 minIndent = pos;
             }
         }
@@ -141,24 +163,28 @@ public class Snippets {
     private void replace(Reader in, Writer out, boolean refs) throws IOException {
         final String template = IoUtils.read(in);
         final Matcher matcher = refStart.matcher(template);
-        int endPos = -1;
-        while (matcher.find(endPos + 1)) {
+        int matchPos = 0;
+        int appendPos = 0;
+        while (matcher.find(matchPos)) {
             final String name = matcher.group(1);
             if (!snippets.containsKey(name)) {
                 throw new IllegalArgumentException("Snippet '" + name + "' not defined.");
             }
             if (refs) {
-                out.write(template.substring(endPos + 1, matcher.start()));
-                endPos = matcher.end();
+                out.write(template.substring(appendPos, matcher.start()));
+                matchPos = appendPos = matcher.end();
             } else {
-                out.write(template.substring(endPos + 1, matcher.end()));
-                endPos = template.indexOf(refEnd, matcher.end());
-                if (endPos < 0) {
+                out.write(template.substring(appendPos, matcher.end()));
+                appendPos = template.indexOf(refEnd, matcher.end());
+                if (appendPos < 0) {
                     throw new IllegalArgumentException("No refEnd marker found for refStart '" + template.substring(matcher.start(), matcher.end()) + "'");
                 }
+                matchPos = appendPos + refEnd.length();
             }
+            out.write(prefix);
             out.write(snippets.get(name));
+            out.write(postfix);
         }
-        out.write(template.substring(endPos));
+        out.write(template.substring(appendPos));
     }
 }
