@@ -31,6 +31,6 @@ public class CodeCoverage {
                 .just(For.global().setMinima(70, 90, 90))
                 .just(For.allPackages().setMinima(70, 90, 90))
         );
-        assertThat(analyzer.analyze(), hasEnoughCoverage());
+        assertThat("enough code coverage", analyzer.analyze(), hasEnoughCoverage());
     }
 }

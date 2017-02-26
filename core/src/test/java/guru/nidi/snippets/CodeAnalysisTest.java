@@ -25,13 +25,13 @@ import guru.nidi.codeassert.findbugs.BugCollector;
 import guru.nidi.codeassert.findbugs.FindBugsAnalyzer;
 import guru.nidi.codeassert.findbugs.FindBugsResult;
 import guru.nidi.codeassert.junit.CodeAssertTest;
+import guru.nidi.codeassert.junit.PredefConfig;
 import guru.nidi.codeassert.model.ModelAnalyzer;
 import guru.nidi.codeassert.model.ModelResult;
 import guru.nidi.codeassert.pmd.*;
 import org.junit.Test;
 
 import static guru.nidi.codeassert.junit.CodeAssertMatchers.packagesMatchExactly;
-import static guru.nidi.codeassert.pmd.Rulesets.*;
 import static org.junit.Assert.assertThat;
 
 public class CodeAnalysisTest extends CodeAssertTest {
@@ -59,6 +59,7 @@ public class CodeAnalysisTest extends CodeAssertTest {
     @Override
     protected FindBugsResult analyzeFindBugs() {
         return new FindBugsAnalyzer(AnalyzerConfig.maven().mainAndTest(), new BugCollector()
+                .apply(PredefConfig.dependencyTestIgnore(CodeAnalysisTest.class))
                 .minPriority(Priorities.NORMAL_PRIORITY)
                 .because("It's a test", In.locs("*Test").ignore("RV_RETURN_VALUE_IGNORED_INFERRED"))
                 .because("It's magic", In.clazz(CodeAnalysisTest.class).ignore("UUF_UNUSED_FIELD"))
@@ -68,22 +69,17 @@ public class CodeAnalysisTest extends CodeAssertTest {
 
     @Override
     protected PmdResult analyzePmd() {
-        return new PmdAnalyzer(AnalyzerConfig.maven().mainAndTest(), new ViolationCollector()
-                .because("I don't agree", In.everywhere().ignore(
-                        "JUnitAssertionsShouldIncludeMessage", "MethodArgumentCouldBeFinal", "AvoidFieldNameMatchingTypeName",
-                        "AvoidFieldNameMatchingMethodName", "UncommentedEmptyMethodBody", "AbstractNaming"))
-                .because("It's in a test", In.locs("*Test", "*Test$*")
-                        .ignore("AvoidDollarSigns", "TooManyStaticImports", "AvoidDuplicateLiterals"))
-                .because("It's wrong", In.clazz(Snippets.class).ignore("UseStringBufferForStringAppends")))
-                .withRuleSets(basic(), braces(), design(), empty(), exceptions(), imports(), junit(),
-                        naming().variableLen(1, 15), optimizations(), strings(), sunSecure(), typeResolution(), unnecessary(), unused())
-                .analyze();
+        return new PmdAnalyzer(AnalyzerConfig.maven().mainAndTest(), new PmdViolationCollector()
+                .apply(PredefConfig.dependencyTestIgnore(CodeAnalysisTest.class))
+                .apply(PredefConfig.minimalPmdIgnore())
+                .because("I don't agree", In.clazz(Snippets.class).ignore("UseVarargs"))
+        ).withRulesets(PredefConfig.defaultPmdRulesets()).analyze();
 
     }
 
     @Override
     protected CpdResult analyzeCpd() {
-        return new CpdAnalyzer(AnalyzerConfig.maven().main(), 30, new MatchCollector()).analyze();
+        return new CpdAnalyzer(AnalyzerConfig.maven().main(), 30, new CpdMatchCollector()).analyze();
     }
 }
 

@@ -141,13 +141,27 @@ public class Snippets {
     }
 
     private String trim(String s) {
-        int minIndent = 1000;
+        final String[] lines = makeLines(s);
+        final int minIndent = findMinimalIndent(lines);
+        final StringBuilder sb = new StringBuilder();
+        for (final String line : lines) {
+            sb.append(line.length() >= minIndent ? line.substring(minIndent) : line).append('\n');
+        }
+        return s.endsWith("\n") ? sb.toString() : sb.substring(0, sb.length() - 1);
+    }
+
+    private String[] makeLines(String s) {
         final String[] lines = s.split("\n");
         if (tabSize > 0) {
             for (int i = 0; i < lines.length; i++) {
                 lines[i] = lines[i].replace("\t", tab());
             }
         }
+        return lines;
+    }
+
+    private int findMinimalIndent(String[] lines) {
+        int minIndent = 1000;
         for (final String line : lines) {
             int pos = 0;
             while (pos < line.length() && line.charAt(pos) <= ' ') {
@@ -157,11 +171,7 @@ public class Snippets {
                 minIndent = pos;
             }
         }
-        final StringBuilder sb = new StringBuilder();
-        for (final String line : lines) {
-            sb.append(line.length() >= minIndent ? line.substring(minIndent) : line).append('\n');
-        }
-        return s.endsWith("\n") ? sb.toString() : sb.substring(0, sb.length() - 1);
+        return minIndent;
     }
 
     private String tab() {
