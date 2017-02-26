@@ -18,16 +18,13 @@ package guru.nidi.snippets;
 import java.io.IOException;
 import java.io.Reader;
 
-/**
- *
- */
 final class IoUtils {
     private IoUtils() {
     }
 
     public static String read(Reader in) throws IOException {
         final StringBuilder s = new StringBuilder();
-final        char[] buf = new char[1000];
+        final char[] buf = new char[1000];
         int read;
         while ((read = in.read(buf)) > 0) {
             s.append(buf, 0, read);

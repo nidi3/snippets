@@ -25,9 +25,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import java.io.File;
 import java.io.IOException;
 
-/**
- *
- */
 @Mojo(name = "snippets", defaultPhase = LifecyclePhase.GENERATE_RESOURCES)
 public class SnippetsMojo extends AbstractMojo {
     @Parameter(property = "snippets.snippetStart", defaultValue = "//## %name")
@@ -76,6 +73,12 @@ public class SnippetsMojo extends AbstractMojo {
     @Parameter(property = "snippets.target.extension", defaultValue = "out")
     private String extension;
 
+    /**
+     * How many spaces should be used for one tab (0 to not replace tabs).
+     */
+    @Parameter(property = "snippets.tab.size", defaultValue = "4")
+    private int tabSize;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (inputs.length == 0) {
@@ -85,7 +88,7 @@ public class SnippetsMojo extends AbstractMojo {
             throw new MojoFailureException("Missing parameter 'outputs'");
         }
         try {
-            final Snippets snippets = readInputs(new Snippets(snippetStart, snippetEnd, refStart, refEnd)
+            final Snippets snippets = readInputs(new Snippets(snippetStart, snippetEnd, refStart, refEnd, tabSize)
                     .prefix(unescape(prefix)).postfix(unescape(postfix)));
             getLog().info("Found " + snippets.size() + " snippets.");
             createOutputs(snippets);

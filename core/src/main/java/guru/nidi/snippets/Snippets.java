@@ -23,9 +23,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- *
- */
 public class Snippets {
     final Map<String, String> snippets;
     private final Pattern snippetStart;
@@ -34,12 +31,13 @@ public class Snippets {
     private final String refEnd;
     private final String prefix;
     private final String postfix;
+    private final int tabSize;
 
-    public Snippets(String snippetStart, String snippetEnd, String refStart, String refEnd) {
-        this(markPattern(snippetStart), snippetEnd, markPattern(refStart), refEnd, "", "", Collections.<String, String>emptyMap());
+    public Snippets(String snippetStart, String snippetEnd, String refStart, String refEnd, int tabSize) {
+        this(markPattern(snippetStart), snippetEnd, markPattern(refStart), refEnd, tabSize, "", "", Collections.<String, String>emptyMap());
     }
 
-    private Snippets(Pattern snippetStart, String snippetEnd, Pattern refStart, String refEnd, String prefix, String postfix, Map<String, String> snippets) {
+    private Snippets(Pattern snippetStart, String snippetEnd, Pattern refStart, String refEnd, int tabSize, String prefix, String postfix, Map<String, String> snippets) {
         this.snippetStart = snippetStart;
         this.snippetEnd = snippetEnd;
         this.refStart = refStart;
@@ -47,6 +45,7 @@ public class Snippets {
         this.prefix = prefix;
         this.postfix = postfix;
         this.snippets = snippets;
+        this.tabSize = tabSize;
     }
 
     private static Pattern markPattern(String s) {
@@ -58,22 +57,22 @@ public class Snippets {
     }
 
     public Snippets prefix(String prefix) {
-        return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, snippets);
+        return new Snippets(snippetStart, snippetEnd, refStart, refEnd, tabSize, prefix, postfix, snippets);
     }
 
     public Snippets postfix(String postfix) {
-        return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, snippets);
+        return new Snippets(snippetStart, snippetEnd, refStart, refEnd, tabSize, prefix, postfix, snippets);
     }
 
     public Snippets withFile(File file, String encoding) throws IOException {
         try (final Reader in = new InputStreamReader(new FileInputStream(file), encoding)) {
-            return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, parse(in, new HashMap<>(snippets)));
+            return new Snippets(snippetStart, snippetEnd, refStart, refEnd, tabSize, prefix, postfix, parse(in, new HashMap<>(snippets)));
         }
     }
 
     public Snippets withString(String code) {
         try {
-            return new Snippets(snippetStart, snippetEnd, refStart, refEnd, prefix, postfix, parse(new StringReader(code), new HashMap<>(snippets)));
+            return new Snippets(snippetStart, snippetEnd, refStart, refEnd, tabSize, prefix, postfix, parse(new StringReader(code), new HashMap<>(snippets)));
         } catch (IOException e) {
             throw new AssertionError("Cannot happen", e);
         }
@@ -144,6 +143,11 @@ public class Snippets {
     private String trim(String s) {
         int minIndent = 1000;
         final String[] lines = s.split("\n");
+        if (tabSize > 0) {
+            for (int i = 0; i < lines.length; i++) {
+                lines[i] = lines[i].replace("\t", tab());
+            }
+        }
         for (final String line : lines) {
             int pos = 0;
             while (pos < line.length() && line.charAt(pos) <= ' ') {
@@ -158,6 +162,14 @@ public class Snippets {
             sb.append(line.length() >= minIndent ? line.substring(minIndent) : line).append('\n');
         }
         return s.endsWith("\n") ? sb.toString() : sb.substring(0, sb.length() - 1);
+    }
+
+    private String tab() {
+        final StringBuilder s = new StringBuilder();
+        while (s.length() < tabSize) {
+            s.append(' ');
+        }
+        return s.toString();
     }
 
     private void replace(Reader in, Writer out, boolean refs) throws IOException {

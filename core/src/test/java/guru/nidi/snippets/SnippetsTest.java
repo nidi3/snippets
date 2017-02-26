@@ -24,21 +24,18 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- *
- */
 public class SnippetsTest {
-    private final Snippets s = new Snippets("##%name", "##end", "##%name", "##end")
+    private final Snippets s = new Snippets("##%name", "##end", "##%name", "##end", 0)
             .withString("line\n##s1\n snippet \n##end\nline");
 
     @Test(expected = IllegalArgumentException.class)
     public void noNameInStart() {
-        new Snippets("start", "end", "#%name", "end");
+        new Snippets("start", "end", "#%name", "end", 0);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void noNameInRef() {
-        new Snippets("#%name", "end", "ref", "end");
+        new Snippets("#%name", "end", "ref", "end", 0);
     }
 
     @Test
@@ -48,19 +45,26 @@ public class SnippetsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void missingEnd() {
-        new Snippets("#%name", "#", "#%name", "#").withString("line\n#s1 snippet \nline");
+        new Snippets("#%name", "#", "#%name", "#", 0).withString("line\n#s1 snippet \nline");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void duplicateKey() {
-        new Snippets("#%name", "#", "#%name", "#").withString("line\n#s1 snippet ##s1 #");
+        new Snippets("#%name", "#", "#%name", "#", 0).withString("line\n#s1 snippet ##s1 #");
     }
 
     @Test
     public void fileParseOk() throws IOException {
-        final Snippets s = new Snippets("//*%name", "//*", "#%name", "#")
+        final Snippets s = new Snippets("//*%name", "//*", "#%name", "#", 0)
                 .withFile(new File("src/test/java/guru/nidi/snippets/SnippetsCode.java"), "utf-8");
         assertEquals(map("main", "\npublic static void main(String... args) {\n    System.exit(1);\n}\n"), s.snippets);
+    }
+
+    @Test
+    public void tabsize() throws IOException {
+        final Snippets s = new Snippets("//*%name", "//*", "#%name", "#", 2)
+                .withString("//*x\n\tfirst\n\t\tsecond\n//*");
+        assertEquals(map("x", "\nfirst\n  second\n"), s.snippets);
     }
 
     @Test
