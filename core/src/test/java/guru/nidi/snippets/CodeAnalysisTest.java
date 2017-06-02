@@ -18,7 +18,6 @@ package guru.nidi.snippets;
 import edu.umd.cs.findbugs.Priorities;
 import guru.nidi.codeassert.config.AnalyzerConfig;
 import guru.nidi.codeassert.config.In;
-import guru.nidi.codeassert.dependency.DependencyRule;
 import guru.nidi.codeassert.dependency.DependencyRuler;
 import guru.nidi.codeassert.dependency.DependencyRules;
 import guru.nidi.codeassert.findbugs.BugCollector;
@@ -39,10 +38,9 @@ public class CodeAnalysisTest extends CodeAssertTest {
     @Test
     public void dependencies() {
         class GuruNidiSnippets extends DependencyRuler {
-            DependencyRule $self;
-
             @Override
             public void defineRules() {
+                base();
             }
         }
         final DependencyRules rules = DependencyRules.denyAll()
@@ -62,7 +60,6 @@ public class CodeAnalysisTest extends CodeAssertTest {
                 .apply(PredefConfig.dependencyTestIgnore(CodeAnalysisTest.class))
                 .minPriority(Priorities.NORMAL_PRIORITY)
                 .because("It's a test", In.locs("*Test").ignore("RV_RETURN_VALUE_IGNORED_INFERRED"))
-                .because("It's magic", In.clazz(CodeAnalysisTest.class).ignore("UUF_UNUSED_FIELD"))
                 .because("It's ok", In.clazz(Snippets.class).ignore("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"))
         ).analyze();
     }
