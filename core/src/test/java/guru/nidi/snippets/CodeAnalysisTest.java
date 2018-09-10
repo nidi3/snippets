@@ -18,25 +18,16 @@ package guru.nidi.snippets;
 import edu.umd.cs.findbugs.Priorities;
 import guru.nidi.codeassert.config.AnalyzerConfig;
 import guru.nidi.codeassert.config.In;
-import guru.nidi.codeassert.dependency.DependencyRuler;
-import guru.nidi.codeassert.dependency.DependencyRules;
-import guru.nidi.codeassert.findbugs.BugCollector;
-import guru.nidi.codeassert.findbugs.FindBugsAnalyzer;
-import guru.nidi.codeassert.findbugs.FindBugsResult;
-import guru.nidi.codeassert.junit.CodeAssertTest;
+import guru.nidi.codeassert.dependency.*;
+import guru.nidi.codeassert.findbugs.*;
+import guru.nidi.codeassert.junit.CodeAssertJunit5Test;
 import guru.nidi.codeassert.junit.PredefConfig;
-import guru.nidi.codeassert.model.ModelAnalyzer;
-import guru.nidi.codeassert.model.ModelResult;
 import guru.nidi.codeassert.pmd.*;
-import org.junit.Test;
 
-import static guru.nidi.codeassert.junit.CodeAssertMatchers.packagesMatchExactly;
-import static org.junit.Assert.assertThat;
+class CodeAnalysisTest extends CodeAssertJunit5Test {
 
-public class CodeAnalysisTest extends CodeAssertTest {
-
-    @Test
-    public void dependencies() {
+    @Override
+    protected DependencyResult analyzeDependencies() {
         class GuruNidiSnippets extends DependencyRuler {
             @Override
             public void defineRules() {
@@ -46,12 +37,7 @@ public class CodeAnalysisTest extends CodeAssertTest {
         final DependencyRules rules = DependencyRules.denyAll()
                 .withExternals("java*")
                 .withRelativeRules(new GuruNidiSnippets());
-        assertThat(modelResult(), packagesMatchExactly(rules));
-    }
-
-    @Override
-    protected ModelResult analyzeModel() {
-        return new ModelAnalyzer(AnalyzerConfig.maven().main()).analyze();
+        return new DependencyAnalyzer(AnalyzerConfig.maven().main()).rules(rules).analyze();
     }
 
     @Override
@@ -59,7 +45,6 @@ public class CodeAnalysisTest extends CodeAssertTest {
         return new FindBugsAnalyzer(AnalyzerConfig.maven().mainAndTest(), new BugCollector()
                 .apply(PredefConfig.dependencyTestIgnore(CodeAnalysisTest.class))
                 .minPriority(Priorities.NORMAL_PRIORITY)
-                .because("It's a test", In.locs("*Test").ignore("RV_RETURN_VALUE_IGNORED_INFERRED"))
                 .because("It's ok", In.clazz(Snippets.class).ignore("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"))
         ).analyze();
     }
@@ -69,7 +54,9 @@ public class CodeAnalysisTest extends CodeAssertTest {
         return new PmdAnalyzer(AnalyzerConfig.maven().mainAndTest(), new PmdViolationCollector()
                 .apply(PredefConfig.dependencyTestIgnore(CodeAnalysisTest.class))
                 .apply(PredefConfig.minimalPmdIgnore())
-                .because("I don't agree", In.clazz(Snippets.class).ignore("UseVarargs"))
+                .because("I don't agree",
+                        In.clazz(Snippets.class).ignore("UseVarargs", "ConfusingTernary"),
+                        In.loc("Snippets#replaceSnippets").ignore("PrematureDeclaration"))
         ).withRulesets(PredefConfig.defaultPmdRulesets()).analyze();
 
     }

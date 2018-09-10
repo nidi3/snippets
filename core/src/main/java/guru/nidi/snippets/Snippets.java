@@ -76,17 +76,18 @@ public class Snippets {
         }
     }
 
-    public void replaceRefs(File file, File output, String encoding) throws IOException {
-        replace(file, output, encoding, true);
+    public List<String> replaceRefs(File file, File output, String encoding) throws IOException {
+        return replace(file, output, encoding, true);
     }
 
-    public void replaceSnippets(File file, String encoding) throws IOException {
+    public List<String> replaceSnippets(File file, String encoding) throws IOException {
         final File temp = File.createTempFile("snippets", "txt");
-        replace(file, temp, encoding, false);
+        final List<String> errors = replace(file, temp, encoding, false);
         if (!file.delete()) {
             throw new IOException("Could not delete file " + file);
         }
         Files.move(temp.toPath(), file.toPath());
+        return errors;
     }
 
     public String replaceRefs(String s) {
@@ -101,12 +102,17 @@ public class Snippets {
         return snippets.size();
     }
 
-    private void replace(File file, File output, String encoding, boolean refs) throws IOException {
+    private List<String> replace(File file, File output, String encoding, boolean refs) throws IOException {
+        final List<String> errors = new ArrayList<>();
         output.getParentFile().mkdirs();
         try (final Reader in = new InputStreamReader(new FileInputStream(file), encoding);
              final Writer out = new OutputStreamWriter(new FileOutputStream(output), encoding)) {
-            replace(in, out, refs);
+            final List<String> es = replace(in, out, refs);
+            for (final String e : es) {
+                errors.add("In file " + file.getName() + ": " + e);
+            }
         }
+        return errors;
     }
 
     private String replace(String s, boolean refs) {
@@ -180,33 +186,35 @@ public class Snippets {
         return s.toString();
     }
 
-    private void replace(Reader in, Writer out, boolean refs) throws IOException {
+    private List<String> replace(Reader in, Writer out, boolean refs) throws IOException {
+        final List<String> errors = new ArrayList<>();
         final String template = IoUtils.read(in);
         final Matcher matcher = refStart.matcher(template);
         int matchPos = 0;
         int appendPos = 0;
         while (matcher.find(matchPos)) {
+            if (refs) {
+                out.write(template.substring(appendPos, matcher.start()));
+                matchPos = appendPos = matcher.end();
+            } else {
+                out.write(template.substring(appendPos, matcher.end()));
+                appendPos = template.indexOf(refEnd, matcher.end());
+                if (appendPos < 0) {
+                    throw new IllegalArgumentException("No refEnd marker found for refStart '" + template.substring(matcher.start(), matcher.end()) + "'");
+                }
+                matchPos = appendPos + refEnd.length();
+            }
             final String name = matcher.group(1);
             if (!snippets.containsKey(name)) {
-                System.out.println("Warning: Snippet '" + name + "' not defined.");
-                matchPos = matcher.end();
+                out.write(template.substring(matcher.end(), appendPos));
+                errors.add("Snippet '" + name + "' not defined.");
             } else {
-                if (refs) {
-                    out.write(template.substring(appendPos, matcher.start()));
-                    matchPos = appendPos = matcher.end();
-                } else {
-                    out.write(template.substring(appendPos, matcher.end()));
-                    appendPos = template.indexOf(refEnd, matcher.end());
-                    if (appendPos < 0) {
-                        throw new IllegalArgumentException("No refEnd marker found for refStart '" + template.substring(matcher.start(), matcher.end()) + "'");
-                    }
-                    matchPos = appendPos + refEnd.length();
-                }
                 out.write(prefix);
                 out.write(snippets.get(name));
                 out.write(postfix);
             }
         }
         out.write(template.substring(appendPos));
+        return errors;
     }
 }

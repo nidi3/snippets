@@ -18,15 +18,15 @@ package guru.nidi.snippets;
 import guru.nidi.codeassert.config.For;
 import guru.nidi.codeassert.jacoco.CoverageCollector;
 import guru.nidi.codeassert.jacoco.JacocoAnalyzer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static guru.nidi.codeassert.jacoco.CoverageType.*;
 import static guru.nidi.codeassert.junit.CodeAssertMatchers.hasEnoughCoverage;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-public class CodeCoverage {
+class CodeCoverage {
     @Test
-    public void coverage() {
+    void coverage() {
         final JacocoAnalyzer analyzer = new JacocoAnalyzer(new CoverageCollector(BRANCH, LINE, METHOD)
                 .just(For.global().setMinima(70, 90, 90))
                 .just(For.allPackages().setMinima(70, 90, 90))
