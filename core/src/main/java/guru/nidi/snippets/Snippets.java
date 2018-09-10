@@ -17,9 +17,7 @@ package guru.nidi.snippets;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -190,22 +188,24 @@ public class Snippets {
         while (matcher.find(matchPos)) {
             final String name = matcher.group(1);
             if (!snippets.containsKey(name)) {
-                throw new IllegalArgumentException("Snippet '" + name + "' not defined.");
-            }
-            if (refs) {
-                out.write(template.substring(appendPos, matcher.start()));
-                matchPos = appendPos = matcher.end();
+                System.out.println("Warning: Snippet '" + name + "' not defined.");
+                matchPos = matcher.end();
             } else {
-                out.write(template.substring(appendPos, matcher.end()));
-                appendPos = template.indexOf(refEnd, matcher.end());
-                if (appendPos < 0) {
-                    throw new IllegalArgumentException("No refEnd marker found for refStart '" + template.substring(matcher.start(), matcher.end()) + "'");
+                if (refs) {
+                    out.write(template.substring(appendPos, matcher.start()));
+                    matchPos = appendPos = matcher.end();
+                } else {
+                    out.write(template.substring(appendPos, matcher.end()));
+                    appendPos = template.indexOf(refEnd, matcher.end());
+                    if (appendPos < 0) {
+                        throw new IllegalArgumentException("No refEnd marker found for refStart '" + template.substring(matcher.start(), matcher.end()) + "'");
+                    }
+                    matchPos = appendPos + refEnd.length();
                 }
-                matchPos = appendPos + refEnd.length();
+                out.write(prefix);
+                out.write(snippets.get(name));
+                out.write(postfix);
             }
-            out.write(prefix);
-            out.write(snippets.get(name));
-            out.write(postfix);
         }
         out.write(template.substring(appendPos));
     }
