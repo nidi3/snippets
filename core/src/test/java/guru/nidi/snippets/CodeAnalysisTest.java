@@ -21,7 +21,6 @@ import guru.nidi.codeassert.config.In;
 import guru.nidi.codeassert.dependency.*;
 import guru.nidi.codeassert.findbugs.*;
 import guru.nidi.codeassert.junit.CodeAssertJunit5Test;
-import guru.nidi.codeassert.junit.PredefConfig;
 import guru.nidi.codeassert.pmd.*;
 
 class CodeAnalysisTest extends CodeAssertJunit5Test {
@@ -43,21 +42,23 @@ class CodeAnalysisTest extends CodeAssertJunit5Test {
     @Override
     protected FindBugsResult analyzeFindBugs() {
         return new FindBugsAnalyzer(AnalyzerConfig.maven().mainAndTest(), new BugCollector()
-                .apply(PredefConfig.dependencyTestIgnore(CodeAnalysisTest.class))
+                .apply(FindBugsConfigs.dependencyTestIgnore(CodeAnalysisTest.class))
                 .minPriority(Priorities.NORMAL_PRIORITY)
-                .because("It's ok", In.clazz(Snippets.class).ignore("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"))
+                .because("It's ok",
+                        In.clazz(Snippets.class).ignore("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"),
+                        In.clazz(SnippetsTest.class).ignore("RV_RETURN_VALUE_IGNORED_INFERRED"))
         ).analyze();
     }
 
     @Override
     protected PmdResult analyzePmd() {
         return new PmdAnalyzer(AnalyzerConfig.maven().mainAndTest(), new PmdViolationCollector()
-                .apply(PredefConfig.dependencyTestIgnore(CodeAnalysisTest.class))
-                .apply(PredefConfig.minimalPmdIgnore())
+                .apply(PmdConfigs.dependencyTestIgnore(CodeAnalysisTest.class))
+                .apply(PmdConfigs.minimalPmdIgnore())
                 .because("I don't agree",
                         In.clazz(Snippets.class).ignore("UseVarargs", "ConfusingTernary"),
                         In.loc("Snippets#replaceSnippets").ignore("PrematureDeclaration"))
-        ).withRulesets(PredefConfig.defaultPmdRulesets()).analyze();
+        ).withRulesets(PmdConfigs.defaultPmdRulesets()).analyze();
 
     }
 
