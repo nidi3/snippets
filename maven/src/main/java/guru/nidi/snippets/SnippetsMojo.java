@@ -16,8 +16,8 @@
 package guru.nidi.snippets;
 
 import org.apache.maven.plugin.*;
-import org.apache.maven.plugins.annotations.*;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -103,7 +103,9 @@ public class SnippetsMojo extends AbstractMojo {
         for (File input : inputs) {
             if (input.isDirectory()) {
                 for (File in : input.listFiles()) {
-                    snippets = doRead(snippets, in);
+                    if (in.isFile()) {
+                        snippets = doRead(snippets, in);
+                    }
                 }
             } else {
                 snippets = doRead(snippets, input);
@@ -131,11 +133,11 @@ public class SnippetsMojo extends AbstractMojo {
 
     private void doReplace(Snippets snippets, File output) throws IOException {
         getLog().info("Replacing " + output.getName());
-        final List<String> errors = replace
+        final List<String> warnings = replace
                 ? snippets.replaceSnippets(output, encoding)
                 : snippets.replaceRefs(output, outputFor(output), encoding);
-        for (final String error : errors) {
-            getLog().error(error);
+        for (final String warning : warnings) {
+            getLog().warn(warning);
         }
     }
 

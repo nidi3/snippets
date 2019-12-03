@@ -82,12 +82,12 @@ public class Snippets {
 
     public List<String> replaceSnippets(File file, String encoding) throws IOException {
         final File temp = File.createTempFile("snippets", "txt");
-        final List<String> errors = replace(file, temp, encoding, false);
+        final List<String> warnings = replace(file, temp, encoding, false);
         if (!file.delete()) {
             throw new IOException("Could not delete file " + file);
         }
         Files.move(temp.toPath(), file.toPath());
-        return errors;
+        return warnings;
     }
 
     public String replaceRefs(String s) {
@@ -103,16 +103,16 @@ public class Snippets {
     }
 
     private List<String> replace(File file, File output, String encoding, boolean refs) throws IOException {
-        final List<String> errors = new ArrayList<>();
+        final List<String> warnings = new ArrayList<>();
         output.getParentFile().mkdirs();
         try (final Reader in = new InputStreamReader(new FileInputStream(file), encoding);
              final Writer out = new OutputStreamWriter(new FileOutputStream(output), encoding)) {
-            final List<String> es = replace(in, out, refs);
-            for (final String e : es) {
-                errors.add("In file " + file.getName() + ": " + e);
+            final List<String> warns = replace(in, out, refs);
+            for (final String warn : warns) {
+                warnings.add("In file " + file.getName() + ": " + warn);
             }
         }
-        return errors;
+        return warnings;
     }
 
     private String replace(String s, boolean refs) {
@@ -187,7 +187,7 @@ public class Snippets {
     }
 
     private List<String> replace(Reader in, Writer out, boolean refs) throws IOException {
-        final List<String> errors = new ArrayList<>();
+        final List<String> warnings = new ArrayList<>();
         final String template = IoUtils.read(in);
         final Matcher matcher = refStart.matcher(template);
         int matchPos = 0;
@@ -207,7 +207,7 @@ public class Snippets {
             final String name = matcher.group(1);
             if (!snippets.containsKey(name)) {
                 out.write(template.substring(matcher.end(), appendPos));
-                errors.add("Snippet '" + name + "' not defined.");
+                warnings.add("Snippet '" + name + "' not defined.");
             } else {
                 out.write(prefix);
                 out.write(snippets.get(name));
@@ -215,6 +215,6 @@ public class Snippets {
             }
         }
         out.write(template.substring(appendPos));
-        return errors;
+        return warnings;
     }
 }
