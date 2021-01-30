@@ -13,6 +13,10 @@
     <name>${project.artifactId}</name>
     <description>The core of snippets.</description>
 
+    <properties>
+        <module.name2>guru.nidi.snippets.core</module.name2>
+    </properties>
+
     <build>
         <plugins>
             <plugin>

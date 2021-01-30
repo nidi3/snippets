@@ -15,6 +15,10 @@
     <name>${project.artifactId}</name>
     <description>Maven plugin of snippets.</description>
 
+    <properties>
+        <module.name>guru.nidi.snippets.maven</module.name>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
